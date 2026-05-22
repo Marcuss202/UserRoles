@@ -3,6 +3,35 @@ require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
 require_auth();
 
+$error = '';
+$success = '';
+
+// Handle POST for adding product
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $shelf = trim($_POST['shelf'] ?? '');
+    $createdBy = $_SESSION['user_id'] ?? null;
+
+    if ($createdBy === null) {
+        $error = 'User session missing.';
+    } elseif ($name === '' || $shelf === '') {
+        $error = 'Name and shelf are required.';
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT INTO products (name, description, shelf, created_by)
+             VALUES (?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $name,
+            $description !== '' ? $description : null,
+            $shelf,
+            $createdBy,
+        ]);
+        $success = 'Product added successfully!';
+    }
+}
+
 $stmt = $pdo->query(
     'SELECT p.id,
             p.name,
@@ -37,6 +66,12 @@ $products = $stmt->fetchAll();
                     <a class="link-btn btn-red" href="dashboard.php">Back</a>
                 </div>
             </div>
+            <?php if ($error): ?>
+                <div class="alert error"><?php echo htmlspecialchars($error); ?></div>
+            <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="alert success"><?php echo htmlspecialchars($success); ?></div>
+            <?php endif; ?>
             <?php if (($_GET['added'] ?? '') === '1'): ?>
                 <div class="notice">Product added.</div>
             <?php endif; ?>
@@ -79,7 +114,7 @@ $products = $stmt->fetchAll();
         <div class="modal-card modal-wrap" role="dialog" aria-modal="true" aria-labelledby="addProductTitle">
             <h2 class="modal-title" id="addProductTitle">Add product</h2>
             <p class="modal-subtitle">Fill in the details below.</p>
-            <form method="post" action="add_product.php">
+            <form method="post" action="products.php">
                 <label for="name">Name</label>
                 <input type="text" id="name" name="name" required>
                 <label for="description">Description</label>
