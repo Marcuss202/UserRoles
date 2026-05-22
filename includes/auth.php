@@ -1,6 +1,21 @@
 <?php
+// Security: Harden session configuration
 if (session_status() !== PHP_SESSION_ACTIVE) {
+    // Security headers for session
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.use_strict_mode', 1);
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_secure', 1); // Only over HTTPS
+    ini_set('session.cookie_samesite', 'Strict');
+    ini_set('session.gc_maxlifetime', 1800); // 30 minutes
+    
     session_start();
+    
+    // Prevent session fixation attacks
+    if (empty($_SESSION['initiated'])) {
+        session_regenerate_id(true);
+        $_SESSION['initiated'] = true;
+    }
 }
 
 function is_logged_in(): bool {
@@ -13,3 +28,4 @@ function require_auth(): void {
         exit;
     }
 }
+
