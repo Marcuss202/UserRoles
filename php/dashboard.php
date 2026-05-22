@@ -20,7 +20,7 @@ $email = $_SESSION['email'] ?? 'user';
                 <a class="link-btn" href="logout.php">Log out</a>
             </div>
             <p>Welcome, <?php echo htmlspecialchars($email); ?>.</p>
-            <p class="helper">This is a minimal placeholder dashboard.</p>
+            <p class="helper"><a href="products.php">View products</a></p>
         </div>
     </div>
 </body>

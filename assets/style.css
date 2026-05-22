@@ -53,6 +53,16 @@ input {
     margin-bottom: 12px;
 }
 
+textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    min-height: 90px;
+    resize: vertical;
+}
+
 button {
     width: 100%;
     padding: 10px 12px;
@@ -106,6 +116,12 @@ button:hover {
     margin-bottom: 16px;
 }
 
+.topbar-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .link-btn {
     display: inline-block;
     padding: 8px 12px;
@@ -114,4 +130,75 @@ button:hover {
     border-radius: 6px;
     text-decoration: none;
     font-size: 14px;
+}
+
+.link-btn:hover {
+    opacity: 0.92;
+}
+
+.btn-green {
+    background: #15803d;
+}
+
+.btn-green:hover {
+    background: #166534;
+    opacity: 1;
+}
+
+.btn-red {
+    background: #b91c1c;
+}
+
+.btn-red:hover {
+    background: #991b1b;
+    opacity: 1;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 12px;
+}
+
+.table th,
+.table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+
+.table th {
+    color: var(--muted);
+    font-weight: 600;
+    background: #f9fafb;
+}
+
+.table tbody tr:nth-child(even) {
+    background: #f6f7f9;
+}
+
+.table-empty {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 12px;
+}
+
+.page-wide {
+    background: #ffffff;
+}
+
+.container-wide {
+    max-width: none;
+    margin: 0;
+    padding: 16px 24px 32px;
+}
+
+.panel-flat {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
 }
