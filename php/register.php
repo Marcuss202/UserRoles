@@ -139,28 +139,6 @@ $csrfToken = generateCSRFToken();
     <meta name="description" content="Secure registration form">
     <title>Register</title>
     <link rel="stylesheet" href="../assets/style.css">
-    <style>
-        .password-requirements {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #f5f5f5;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-        .password-requirements ul {
-            list-style-type: disc;
-            margin: 8px 0 0 20px;
-            padding: 0;
-        }
-        .requirement {
-            margin: 5px 0;
-            color: #666;
-        }
-        .requirement.met {
-            color: #28a745;
-            font-weight: 500;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
