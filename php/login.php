@@ -2,31 +2,87 @@
 require __DIR__ . '/../includes/db.php';
 require __DIR__ . '/../includes/auth.php';
 
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+
 if (is_logged_in()) {
     header('Location: dashboard.php');
     exit;
 }
 
+function generateCSRFToken(): string {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCSRFToken($token): bool {
+    return hash_equals($_SESSION['csrf_token'] ?? '', $token);
+}
+
+function checkLoginRateLimit(): bool {
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $rateFile = sys_get_temp_dir() . '/login_limit_' . md5($ip) . '.json';
+    
+    if (file_exists($rateFile)) {
+        $data = json_decode(file_get_contents($rateFile), true);
+        $now = time();
+        
+        if ($now - $data['time'] < 60) {
+            if ($data['attempts'] >= 5) {
+                return false;
+            }
+            $data['attempts']++;
+        } else {
+            $data = ['attempts' => 1, 'time' => $now];
+        }
+    } else {
+        $data = ['attempts' => 1, 'time' => time()];
+    }
+    
+    file_put_contents($rateFile, json_encode($data));
+    return true;
+}
+
 $error = '';
+$csrfToken = generateCSRFToken();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-
-    if ($email === '' || $password === '') {
-        $error = 'All fields are required.';
+    if (!checkLoginRateLimit()) {
+        $error = 'Too many login attempts. Please wait 1 minute before trying again.';
+    }
+    elseif (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request. Please try again.';
     } else {
-        $stmt = $pdo->prepare('SELECT id, email, password_hash FROM users WHERE email = ? LIMIT 1');
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+        $email = strtolower(trim($_POST['email'] ?? ''));
+        $password = trim($_POST['password'] ?? '');
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
-            $error = 'Invalid credentials.';
+        if ($email === '' || $password === '') {
+            $error = 'All fields are required.';
         } else {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['email'] = $user['email'];
-            header('Location: dashboard.php');
-            exit;
+            $stmt = $pdo->prepare('SELECT id, email, password_hash FROM users WHERE email = ? LIMIT 1');
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
+
+            if (!$user || !password_verify($password, $user['password_hash'])) {
+                $error = 'Invalid credentials.';
+            } else {
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['email'] = $user['email'];
+                
+                $ip = $_SERVER['REMOTE_ADDR'];
+                $rateFile = sys_get_temp_dir() . '/login_limit_' . md5($ip) . '.json';
+                if (file_exists($rateFile)) {
+                    unlink($rateFile);
+                }
+                
+                header('Location: dashboard.php');
+                exit;
+            }
         }
     }
 }
@@ -47,10 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="error"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
             <form method="post" action="login.php">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
+                <input type="email" id="email" name="email" required autocomplete="email">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
                 <button type="submit">Log in</button>
             </form>
             <div class="helper">
