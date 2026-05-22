@@ -78,6 +78,10 @@ button:hover {
     background: var(--accent-2);
 }
 
+.close_btn:hover {
+    background-color: rgb(255, 95, 95);
+}
+
 .helper {
     margin-top: 12px;
     font-size: 14px;
@@ -201,4 +205,65 @@ button:hover {
     border-radius: 0;
     padding: 0;
     box-shadow: none;
+}
+
+.page-content.is-blurred {
+    filter: blur(6px);
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+}
+
+.modal-backdrop.is-open {
+    display: flex;
+}
+
+.modal-card {
+    width: 100%;
+    max-width: 520px;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    padding: 20px 24px 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.modal-title {
+    margin: 0 0 4px;
+    font-size: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.modal-subtitle {
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.modal-close {
+    max-width: 50px;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    color: white;
+    background-color: rgb(255, 67, 67);
+}
+
+.modal-wrap {
+    position: relative;
+}
+
+.buttons_add {
+    display: flex;
+    gap: 8px;
 }
