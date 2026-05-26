@@ -3,6 +3,16 @@ require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
 require_auth();
 
+// Check if user needs to change their temporary password
+$stmt = $pdo->prepare('SELECT password_changed FROM users WHERE id = ? LIMIT 1');
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
+
+if ($user && !$user['password_changed']) {
+    header('Location: change_password.php');
+    exit;
+}
+
 $email = $_SESSION['email'] ?? 'user';
 
 // Get user's role

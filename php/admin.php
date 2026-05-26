@@ -29,6 +29,14 @@ function verifyCSRFToken($token): bool {
     return hash_equals($_SESSION['csrf_token'] ?? '', $token);
 }
 
+function sanitizeEmail($email): string {
+    return strtolower(trim(filter_var($email, FILTER_SANITIZE_EMAIL)));
+}
+
+function generateTemporaryPassword(): string {
+    return 'Temp' . bin2hex(random_bytes(8)) . '!';
+}
+
 $error = '';
 $success = '';
 
@@ -36,30 +44,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid request. Please try again.';
     } else {
-        $userId = intval($_POST['user_id'] ?? 0);
-        $newRole = $_POST['role'] ?? '';
+        $action = $_POST['action'] ?? '';
         
-        $validRoles = ['admin', 'item', 'shelf'];
-        if (!in_array($newRole, $validRoles)) {
-            $error = 'Invalid role selected.';
-        } elseif ($userId <= 0) {
-            $error = 'Invalid user ID.';
-        } elseif ($userId == $_SESSION['user_id']) {
-            $error = 'You cannot change your own role.';
-        } else {
-            try {
-                $checkStmt = $pdo->prepare('SELECT id FROM users WHERE id = ? LIMIT 1');
-                $checkStmt->execute([$userId]);
-                if (!$checkStmt->fetch()) {
-                    $error = 'User not found.';
-                } else {
-                    $updateStmt = $pdo->prepare('UPDATE users SET role = ? WHERE id = ?');
-                    $updateStmt->execute([$newRole, $userId]);
-                    $success = 'User role updated successfully.';
+        if ($action === 'create_user') {
+            // Handle user creation
+            $email = sanitizeEmail($_POST['email'] ?? '');
+            $role = $_POST['role'] ?? 'item';
+            
+            $validRoles = ['admin', 'item', 'shelf'];
+            
+            if ($email === '') {
+                $error = 'Email is required.';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = 'Invalid email format.';
+            } elseif (strlen($email) > 255) {
+                $error = 'Email is too long.';
+            } elseif (!in_array($role, $validRoles)) {
+                $error = 'Invalid role selected.';
+            } else {
+                try {
+                    // Check if email already exists
+                    $checkStmt = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+                    $checkStmt->execute([$email]);
+                    
+                    if ($checkStmt->fetch()) {
+                        $error = 'A user with this email already exists.';
+                    } else {
+                        // Generate a temporary password
+                        $tempPassword = generateTemporaryPassword();
+                        $hash = password_hash($tempPassword, PASSWORD_ARGON2ID, [
+                            'memory_cost' => 65536,
+                            'time_cost' => 4,
+                            'threads' => 2
+                        ]);
+                        
+                        // Insert new user
+                        $insert = $pdo->prepare('INSERT INTO users (email, password_hash, role, password_changed) VALUES (?, ?, ?, FALSE)');
+                        $insert->execute([$email, $hash, $role]);
+                        
+                        $success = "User created successfully. Temporary password: <strong>$tempPassword</strong> (User must change on first login)";
+                        $_POST = [];
+                    }
+                } catch (PDOException $e) {
+                    error_log('User creation error: ' . $e->getMessage());
+                    $error = 'An error occurred while creating the user.';
                 }
-            } catch (PDOException $e) {
-                error_log('Admin error: ' . $e->getMessage());
-                $error = 'An error occurred while updating the role.';
+            }
+        } else {
+            // Handle role change
+            $userId = intval($_POST['user_id'] ?? 0);
+            $newRole = $_POST['role'] ?? '';
+            
+            $validRoles = ['admin', 'item', 'shelf'];
+            if (!in_array($newRole, $validRoles)) {
+                $error = 'Invalid role selected.';
+            } elseif ($userId <= 0) {
+                $error = 'Invalid user ID.';
+            } elseif ($userId == $_SESSION['user_id']) {
+                $error = 'You cannot change your own role.';
+            } else {
+                try {
+                    $checkStmt = $pdo->prepare('SELECT id FROM users WHERE id = ? LIMIT 1');
+                    $checkStmt->execute([$userId]);
+                    if (!$checkStmt->fetch()) {
+                        $error = 'User not found.';
+                    } else {
+                        $updateStmt = $pdo->prepare('UPDATE users SET role = ? WHERE id = ?');
+                        $updateStmt->execute([$newRole, $userId]);
+                        $success = 'User role updated successfully.';
+                    }
+                } catch (PDOException $e) {
+                    error_log('Admin error: ' . $e->getMessage());
+                    $error = 'An error occurred while updating the role.';
+                }
             }
         }
     }
@@ -98,8 +155,41 @@ $csrfToken = generateCSRFToken();
         <?php endif; ?>
         
         <?php if ($success): ?>
-            <div class="alert success"><?php echo htmlspecialchars($success); ?></div>
+            <div class="alert success"><?php echo $success; ?></div>
         <?php endif; ?>
+
+        <div style="margin-bottom: 40px; padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+            <h2 style="margin-top: 0; color: #333;">Create New User</h2>
+            <form method="post" action="admin.php" autocomplete="off">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                <input type="hidden" name="action" value="create_user">
+                
+                <div style="margin-bottom: 15px;">
+                    <label for="new_email" style="display: block; margin-bottom: 5px; font-weight: bold;">Email</label>
+                    <input 
+                        type="email" 
+                        id="new_email" 
+                        name="email" 
+                        required 
+                        maxlength="255"
+                        placeholder="user@example.com"
+                        autocomplete="off"
+                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box;"
+                    >
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label for="new_role" style="display: block; margin-bottom: 5px; font-weight: bold;">Role</label>
+                    <select name="role" id="new_role" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box;">
+                        <option value="item">Item Manager</option>
+                        <option value="shelf">Shelf Staff</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                
+                <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; font-size: 14px;">Create User</button>
+            </form>
+        </div>
 
         <div class="info-text">
             Total users: <strong><?php echo count($users); ?></strong>
