@@ -158,6 +158,21 @@ button:hover {
     opacity: 1;
 }
 
+.btn-gray {
+    background: #374151;
+}
+
+.btn-gray:hover {
+    background: #1f2937;
+    opacity: 1;
+}
+
+input:disabled,
+textarea:disabled {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
 .table {
     width: 100%;
     border-collapse: collapse;

@@ -29,3 +29,19 @@ function require_auth(): void {
     }
 }
 
+function current_role(): string {
+    return $_SESSION['role'] ?? 'shelf';
+}
+
+function can_add_product(): bool {
+    return in_array(current_role(), ['admin', 'item'], true);
+}
+
+function can_edit_item_fields(): bool {
+    return in_array(current_role(), ['admin', 'item'], true);
+}
+
+function can_edit_shelf(): bool {
+    return in_array(current_role(), ['admin', 'shelf'], true);
+}
+
