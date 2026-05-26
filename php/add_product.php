@@ -3,6 +3,12 @@ require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
 require_auth();
 
+if (!can_add_product()) {
+    http_response_code(403);
+    echo 'Access denied.';
+    exit;
+}
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

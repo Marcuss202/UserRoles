@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($email === '' || $password === '') {
             $error = 'All fields are required.';
         } else {
-            $stmt = $pdo->prepare('SELECT id, email, password_hash FROM users WHERE email = ? LIMIT 1');
+            $stmt = $pdo->prepare('SELECT id, email, password_hash, role FROM users WHERE email = ? LIMIT 1');
             $stmt->execute([$email]);
             $user = $stmt->fetch();
 
@@ -73,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 session_regenerate_id(true);
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['email'] = $user['email'];
+                $_SESSION['role'] = $user['role'];
                 
                 $ip = $_SERVER['REMOTE_ADDR'];
                 $rateFile = sys_get_temp_dir() . '/login_limit_' . md5($ip) . '.json';
