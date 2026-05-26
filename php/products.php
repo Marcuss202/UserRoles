@@ -1,23 +1,32 @@
 <?php
 require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
+require __DIR__ . '/../includes/activity.php';
 require_auth();
+
+$canAdd = can_add_product();
+$canEdit = can_edit_item_fields() || can_edit_shelf();
 
 $error = '';
 $success = '';
 
 // Handle POST for adding product
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!$canAdd) {
+        http_response_code(403);
+        $error = 'Access denied.';
+    }
+
     $name = trim($_POST['name'] ?? '');
     $description = trim($_POST['description'] ?? '');
     $shelf = trim($_POST['shelf'] ?? '');
     $createdBy = $_SESSION['user_id'] ?? null;
 
-    if ($createdBy === null) {
+    if ($error === '' && $createdBy === null) {
         $error = 'User session missing.';
-    } elseif ($name === '' || $shelf === '') {
+    } elseif ($error === '' && ($name === '' || $shelf === '')) {
         $error = 'Name and shelf are required.';
-    } else {
+    } elseif ($error === '') {
         $stmt = $pdo->prepare(
             'INSERT INTO products (name, description, shelf, created_by)
              VALUES (?, ?, ?, ?)'
@@ -28,6 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $shelf,
             $createdBy,
         ]);
+        $productId = (int) $pdo->lastInsertId();
+        $details = 'name=' . $name . '; shelf=' . $shelf . '; description=' . ($description !== '' ? $description : '-');
+        log_activity($pdo, $createdBy, 'create', 'product', $productId, null, null, $details);
         $success = 'Product added successfully!';
     }
 }
@@ -62,7 +74,10 @@ $products = $stmt->fetchAll();
             <div class="topbar">
                 <h1>Products</h1>
                 <div class="topbar-actions">
-                    <button class="link-btn btn-green" type="button" id="openAddProduct">Add product</button>
+                    <?php if ($canAdd): ?>
+                        <button class="link-btn btn-green" type="button" id="openAddProduct">Add product</button>
+                    <?php endif; ?>
+                    <a class="link-btn btn-gray" href="report.php">Report</a>
                     <a class="link-btn btn-red" href="dashboard.php">Back</a>
                 </div>
             </div>
@@ -89,6 +104,9 @@ $products = $stmt->fetchAll();
                             <th>Created By</th>
                             <th>Updated At</th>
                             <th>Updated By</th>
+                            <?php if ($canEdit): ?>
+                                <th>Actions</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -102,6 +120,11 @@ $products = $stmt->fetchAll();
                                 <td><?php echo htmlspecialchars($product['created_by_name'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($product['updated_at'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($product['updated_by_name'] ?? '-'); ?></td>
+                                <?php if ($canEdit): ?>
+                                    <td>
+                                        <a class="link-btn btn-gray" href="edit_product.php?id=<?php echo (int) $product['id']; ?>">Edit</a>
+                                    </td>
+                                <?php endif; ?>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -110,59 +133,63 @@ $products = $stmt->fetchAll();
         </div>
     </div>
 
-    <div class="modal-backdrop" id="addProductModal" aria-hidden="true">
-        <div class="modal-card modal-wrap" role="dialog" aria-modal="true" aria-labelledby="addProductTitle">
-            <h2 class="modal-title" id="addProductTitle">Add product</h2>
-            <p class="modal-subtitle">Fill in the details below.</p>
-            <form method="post" action="products.php">
-                <label for="name">Name</label>
-                <input type="text" id="name" name="name" required>
-                <label for="description">Description</label>
-                <textarea id="description" name="description"></textarea>
-                <label for="shelf">Shelf</label>
-                <input type="text" id="shelf" name="shelf" placeholder="A1" required>
-                <div class="buttons_add">
-                    <button type="submit">Add</button>
-                    <button class="modal-close close_btn" type="button" id="closeAddProduct" aria-label="Close">&times;</button>
-                </div>
-            </form>
+    <?php if ($canAdd): ?>
+        <div class="modal-backdrop" id="addProductModal" aria-hidden="true">
+            <div class="modal-card modal-wrap" role="dialog" aria-modal="true" aria-labelledby="addProductTitle">
+                <h2 class="modal-title" id="addProductTitle">Add product</h2>
+                <p class="modal-subtitle">Fill in the details below.</p>
+                <form method="post" action="products.php">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description"></textarea>
+                    <label for="shelf">Shelf</label>
+                    <input type="text" id="shelf" name="shelf" placeholder="A1" required>
+                    <div class="buttons_add">
+                        <button type="submit">Add</button>
+                        <button class="modal-close close_btn" type="button" id="closeAddProduct" aria-label="Close">&times;</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
+    <?php endif; ?>
 
-    <script>
-        const openBtn = document.getElementById('openAddProduct');
-        const closeBtn = document.getElementById('closeAddProduct');
-        const modal = document.getElementById('addProductModal');
-        const pageContent = document.getElementById('pageContent');
+    <?php if ($canAdd): ?>
+        <script>
+            const openBtn = document.getElementById('openAddProduct');
+            const closeBtn = document.getElementById('closeAddProduct');
+            const modal = document.getElementById('addProductModal');
+            const pageContent = document.getElementById('pageContent');
 
-        function openModal() {
-            modal.classList.add('is-open');
-            modal.setAttribute('aria-hidden', 'false');
-            pageContent.classList.add('is-blurred');
-            const nameInput = modal.querySelector('#name');
-            if (nameInput) {
-                nameInput.focus();
+            function openModal() {
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+                pageContent.classList.add('is-blurred');
+                const nameInput = modal.querySelector('#name');
+                if (nameInput) {
+                    nameInput.focus();
+                }
             }
-        }
 
-        function closeModal() {
-            modal.classList.remove('is-open');
-            modal.setAttribute('aria-hidden', 'true');
-            pageContent.classList.remove('is-blurred');
-        }
+            function closeModal() {
+                modal.classList.remove('is-open');
+                modal.setAttribute('aria-hidden', 'true');
+                pageContent.classList.remove('is-blurred');
+            }
 
-        openBtn.addEventListener('click', openModal);
-        closeBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                closeModal();
-            }
-        });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeModal();
-            }
-        });
-    </script>
+            openBtn.addEventListener('click', openModal);
+            closeBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeModal();
+                }
+            });
+        </script>
+    <?php endif; ?>
 </body>
 </html>

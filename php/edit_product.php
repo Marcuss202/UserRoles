@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
+require __DIR__ . '/../includes/activity.php';
 require_auth();
 
 $productId = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
@@ -31,6 +32,7 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$updates = [];
 	$params = [];
+	$changes = [];
 
 	if ($canEditItem) {
 		$name = trim($_POST['name'] ?? '');
@@ -38,10 +40,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		if ($name === '') {
 			$error = 'Name is required.';
 		} else {
-			$updates[] = 'name = ?';
-			$params[] = $name;
-			$updates[] = 'description = ?';
-			$params[] = $description !== '' ? $description : null;
+			if ($name !== $product['name']) {
+				$updates[] = 'name = ?';
+				$params[] = $name;
+				$changes[] = ['field' => 'name', 'old' => $product['name'], 'new' => $name];
+			}
+			$nextDescription = $description !== '' ? $description : null;
+			if ($nextDescription !== $product['description']) {
+				$updates[] = 'description = ?';
+				$params[] = $nextDescription;
+				$changes[] = ['field' => 'description', 'old' => $product['description'], 'new' => $nextDescription];
+			}
 		}
 	}
 
@@ -50,8 +59,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		if ($shelf === '') {
 			$error = $error !== '' ? $error : 'Shelf is required.';
 		} else {
-			$updates[] = 'shelf = ?';
-			$params[] = $shelf;
+			if ($shelf !== $product['shelf']) {
+				$updates[] = 'shelf = ?';
+				$params[] = $shelf;
+				$changes[] = ['field' => 'shelf', 'old' => $product['shelf'], 'new' => $shelf];
+			}
 		}
 	}
 
@@ -67,6 +79,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$sql = 'UPDATE products SET ' . implode(', ', $updates) . ' WHERE id = ?';
 		$updateStmt = $pdo->prepare($sql);
 		$updateStmt->execute($params);
+		foreach ($changes as $change) {
+			log_activity(
+				$pdo,
+				$_SESSION['user_id'] ?? null,
+				'update',
+				'product',
+				$productId,
+				$change['field'],
+				$change['old'] === null ? null : (string) $change['old'],
+				$change['new'] === null ? null : (string) $change['new']
+			);
+		}
 		header('Location: products.php?updated=1');
 		exit;
 	}

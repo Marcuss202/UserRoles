@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
+require __DIR__ . '/../includes/activity.php';
 require_auth();
 
 if (!can_add_product()) {
@@ -32,6 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $shelf,
             $createdBy,
         ]);
+        $productId = (int) $pdo->lastInsertId();
+        $details = 'name=' . $name . '; shelf=' . $shelf . '; description=' . ($description !== '' ? $description : '-');
+        log_activity($pdo, $createdBy, 'create', 'product', $productId, null, null, $details);
         header('Location: products.php?added=1');
         exit;
     }

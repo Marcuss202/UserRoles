@@ -45,3 +45,11 @@ function can_edit_shelf(): bool {
     return in_array(current_role(), ['admin', 'shelf'], true);
 }
 
+function can_manage_orders(): bool {
+    return in_array(current_role(), ['admin', 'item'], true);
+}
+
+function can_view_orders(): bool {
+    return in_array(current_role(), ['admin', 'item', 'shelf'], true);
+}
+

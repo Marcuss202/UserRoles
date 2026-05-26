@@ -42,16 +42,19 @@ $userRole = $user['role'] ?? 'shelf';
             <div class="dashboard-panels">
                 <?php if ($userRole === 'admin'): ?>
                     <a href="products.php" class="dashboard-btn btn-shelf">View Products</a>
-                    <a href="products.php" class="dashboard-btn btn-item">Add Products</a>
+                    <a href="report.php" class="dashboard-btn btn-item">View Report</a>
+                    <a href="orders.php" class="dashboard-btn btn-item">Order Management</a>
                     <a href="admin.php" class="dashboard-btn btn-admin">Admin Panel</a>
                 <?php endif; ?>
                 
                 <?php if ($userRole === 'item'): ?>
                     <a href="products.php" class="dashboard-btn btn-item">Add Products</a>
+                    <a href="orders.php" class="dashboard-btn btn-item">Order Management</a>
                 <?php endif; ?>
                 
                 <?php if ($userRole === 'shelf'): ?>
                     <a href="products.php" class="dashboard-btn btn-shelf">View Products</a>
+                    <a href="orders.php" class="dashboard-btn btn-shelf">View Orders</a>
                 <?php endif; ?>
             </div>
         </div>
