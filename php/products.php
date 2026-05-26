@@ -6,7 +6,6 @@ require_auth();
 $error = '';
 $success = '';
 
-// Handle POST for adding product
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $description = trim($_POST['description'] ?? '');
