@@ -4,6 +4,34 @@ require __DIR__ . '/../includes/db.php';
 require_auth();
 
 $canAdd = can_add_product();
+$error = '';
+$success = '';
+
+// Handle POST for adding product
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $shelf = trim($_POST['shelf'] ?? '');
+    $createdBy = $_SESSION['user_id'] ?? null;
+
+    if ($createdBy === null) {
+        $error = 'User session missing.';
+    } elseif ($name === '' || $shelf === '') {
+        $error = 'Name and shelf are required.';
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT INTO products (name, description, shelf, created_by)
+             VALUES (?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $name,
+            $description !== '' ? $description : null,
+            $shelf,
+            $createdBy,
+        ]);
+        $success = 'Product added successfully!';
+    }
+}
 
 $stmt = $pdo->query(
     'SELECT p.id,
@@ -41,6 +69,12 @@ $products = $stmt->fetchAll();
                     <a class="link-btn btn-red" href="dashboard.php">Back</a>
                 </div>
             </div>
+            <?php if ($error): ?>
+                <div class="alert error"><?php echo htmlspecialchars($error); ?></div>
+            <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="alert success"><?php echo htmlspecialchars($success); ?></div>
+            <?php endif; ?>
             <?php if (($_GET['added'] ?? '') === '1'): ?>
                 <div class="notice">Product added.</div>
             <?php endif; ?>

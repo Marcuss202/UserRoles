@@ -1,8 +1,15 @@
 <?php
 require __DIR__ . '/../includes/auth.php';
+require __DIR__ . '/../includes/db.php';
 require_auth();
 
 $email = $_SESSION['email'] ?? 'user';
+
+// Get user's role
+$stmt = $pdo->prepare('SELECT role FROM users WHERE id = ? LIMIT 1');
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
+$userRole = $user['role'] ?? 'shelf';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -21,6 +28,22 @@ $email = $_SESSION['email'] ?? 'user';
             </div>
             <p>Welcome, <?php echo htmlspecialchars($email); ?>.</p>
             <p class="helper"><a href="products.php">View products</a></p>
+            
+            <div class="dashboard-panels">
+                <?php if ($userRole === 'admin'): ?>
+                    <a href="products.php" class="dashboard-btn btn-shelf">View Products</a>
+                    <a href="products.php" class="dashboard-btn btn-item">Add Products</a>
+                    <a href="admin.php" class="dashboard-btn btn-admin">Admin Panel</a>
+                <?php endif; ?>
+                
+                <?php if ($userRole === 'item'): ?>
+                    <a href="products.php" class="dashboard-btn btn-item">Add Products</a>
+                <?php endif; ?>
+                
+                <?php if ($userRole === 'shelf'): ?>
+                    <a href="products.php" class="dashboard-btn btn-shelf">View Products</a>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 </body>
