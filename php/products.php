@@ -7,12 +7,26 @@ require_auth();
 $canAdd = can_add_product();
 $canEdit = can_edit_item_fields() || can_edit_shelf();
 
+function generateCSRFToken(): string {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCSRFToken($token): bool {
+    return hash_equals($_SESSION['csrf_token'] ?? '', $token);
+}
+
 $error = '';
 $success = '';
+$csrfToken = generateCSRFToken();
 
 // Handle POST for deleting product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
-    if (!$canEdit) {
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request. Please try again.';
+    } elseif (!$canEdit) {
         http_response_code(403);
         $error = 'Access denied.';
     } else {
@@ -43,7 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 }
 // Handle POST for adding product
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!$canAdd) {
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request. Please try again.';
+    } elseif (!$canAdd) {
         http_response_code(403);
         $error = 'Access denied.';
     }
@@ -156,6 +172,7 @@ $products = $stmt->fetchAll();
                                     <td>
                                         <a class="link-btn btn-gray" href="edit_product.php?id=<?php echo (int) $product['id']; ?>">Edit</a>
                                         <form method="post" action="products.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this product?');">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="product_id" value="<?php echo (int) $product['id']; ?>">
                                             <button type="submit" class="link-btn btn-red">Delete</button>
@@ -176,6 +193,7 @@ $products = $stmt->fetchAll();
                 <h2 class="modal-title" id="addProductTitle">Add product</h2>
                 <p class="modal-subtitle">Fill in the details below.</p>
                 <form method="post" action="products.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <label for="name">Name</label>
                     <input type="text" id="name" name="name" maxlength="200" required>
                     <label for="description">Description</label>
