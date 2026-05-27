@@ -22,15 +22,21 @@ CREATE TABLE IF NOT EXISTS products (
     created_by INT NOT NULL,
     updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     updated_by INT NULL,
+    deleted_at TIMESTAMP NULL,
+    deleted_by INT NULL,
     INDEX idx_name (name),
     INDEX idx_shelf (shelf),
     INDEX idx_created_by (created_by),
     INDEX idx_updated_by (updated_by),
+    INDEX idx_deleted_at (deleted_at),
     CONSTRAINT fk_products_created_by
         FOREIGN KEY (created_by) REFERENCES users(id)
         ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT fk_products_updated_by
         FOREIGN KEY (updated_by) REFERENCES users(id)
+        ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT fk_products_deleted_by
+        FOREIGN KEY (deleted_by) REFERENCES users(id)
         ON UPDATE CASCADE ON DELETE SET NULL
 );
 

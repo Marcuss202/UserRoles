@@ -38,12 +38,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'User session missing.';
             } elseif ($productId <= 0 || $quantity <= 0) {
                 $error = 'Product and quantity are required.';
+            } elseif ($quantity > 9999) {
+                $error = 'Quantity cannot exceed 9999.';
             } else {
-                $pdo->beginTransaction();
-                try {
-                    $stmt = $pdo->prepare('INSERT INTO orders (created_by) VALUES (?)');
-                    $stmt->execute([$createdBy]);
-                    $orderId = (int) $pdo->lastInsertId();
+                // Verify product exists
+                $productCheck = $pdo->prepare('SELECT id FROM products WHERE id = ? LIMIT 1');
+                $productCheck->execute([$productId]);
+                if (!$productCheck->fetch()) {
+                    $error = 'Product not found.';
+                } else {
+                    $pdo->beginTransaction();
+                    try {
+                        $stmt = $pdo->prepare('INSERT INTO orders (created_by) VALUES (?)');
+                        $stmt->execute([$createdBy]);
+                        $orderId = (int) $pdo->lastInsertId();
 
                     $itemStmt = $pdo->prepare('INSERT INTO order_items (order_id, product_id, quantity) VALUES (?, ?, ?)');
                     $itemStmt->execute([$orderId, $productId, $quantity]);
@@ -56,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } catch (Throwable $e) {
                     $pdo->rollBack();
                     $error = 'Failed to create order.';
+                }
                 }
             }
         }
@@ -127,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$productsStmt = $pdo->query('SELECT id, name FROM products ORDER BY name ASC');
+$productsStmt = $pdo->query('SELECT id, name FROM products WHERE deleted_at IS NULL ORDER BY name ASC');
 $products = $productsStmt->fetchAll();
 
 $orderStmt = $pdo->query(
@@ -217,7 +226,7 @@ foreach ($rows as $row) {
                     </div>
                     <div>
                         <label for="quantity">Quantity</label>
-                        <input type="number" id="quantity" name="quantity" min="1" value="1" required>
+                        <input type="number" id="quantity" name="quantity" min="1" max="9999" value="1" required>
                     </div>
                     <div>
                         <button type="submit">Create order</button>

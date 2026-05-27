@@ -18,11 +18,32 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     }
 }
 
+// Session activity timeout (30 minutes of inactivity)
+define('SESSION_ACTIVITY_TIMEOUT', 1800);
+
+function check_session_timeout(): void {
+    if (is_logged_in()) {
+        $now = time();
+        $lastActivity = $_SESSION['last_activity'] ?? $now;
+        
+        if ($now - $lastActivity > SESSION_ACTIVITY_TIMEOUT) {
+            // Session has timed out
+            session_destroy();
+            header('Location: login.php?timeout=1');
+            exit;
+        }
+        
+        // Update last activity time
+        $_SESSION['last_activity'] = $now;
+    }
+}
+
 function is_logged_in(): bool {
     return isset($_SESSION['user_id']);
 }
 
 function require_auth(): void {
+    check_session_timeout();
     if (!is_logged_in()) {
         header('Location: login.php');
         exit;

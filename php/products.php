@@ -10,8 +10,39 @@ $canEdit = can_edit_item_fields() || can_edit_shelf();
 $error = '';
 $success = '';
 
+// Handle POST for deleting product
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+    if (!$canEdit) {
+        http_response_code(403);
+        $error = 'Access denied.';
+    } else {
+        $productId = (int) ($_POST['product_id'] ?? 0);
+        $userId = $_SESSION['user_id'] ?? null;
+        
+        if ($productId <= 0 || $userId === null) {
+            $error = 'Invalid request.';
+        } else {
+            try {
+                $deleteStmt = $pdo->prepare(
+                    'UPDATE products SET deleted_at = NOW(), deleted_by = ? WHERE id = ? AND deleted_at IS NULL'
+                );
+                $deleteStmt->execute([$userId, $productId]);
+                
+                if ($deleteStmt->rowCount() > 0) {
+                    log_activity($pdo, $userId, 'delete', 'product', $productId, null, null, 'Product soft-deleted');
+                    $success = 'Product deleted successfully.';
+                } else {
+                    $error = 'Product not found or already deleted.';
+                }
+            } catch (PDOException $e) {
+                error_log('Product deletion error: ' . $e->getMessage());
+                $error = 'Failed to delete product.';
+            }
+        }
+    }
+}
 // Handle POST for adding product
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$canAdd) {
         http_response_code(403);
         $error = 'Access denied.';
@@ -56,6 +87,7 @@ $stmt = $pdo->query(
      FROM products p
      LEFT JOIN users u_create ON u_create.id = p.created_by
      LEFT JOIN users u_update ON u_update.id = p.updated_by
+     WHERE p.deleted_at IS NULL
      ORDER BY p.id DESC'
 );
 $products = $stmt->fetchAll();
@@ -123,6 +155,11 @@ $products = $stmt->fetchAll();
                                 <?php if ($canEdit): ?>
                                     <td>
                                         <a class="link-btn btn-gray" href="edit_product.php?id=<?php echo (int) $product['id']; ?>">Edit</a>
+                                        <form method="post" action="products.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this product?');">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="product_id" value="<?php echo (int) $product['id']; ?>">
+                                            <button type="submit" class="link-btn btn-red">Delete</button>
+                                        </form>
                                     </td>
                                 <?php endif; ?>
                             </tr>
@@ -140,11 +177,11 @@ $products = $stmt->fetchAll();
                 <p class="modal-subtitle">Fill in the details below.</p>
                 <form method="post" action="products.php">
                     <label for="name">Name</label>
-                    <input type="text" id="name" name="name" required>
+                    <input type="text" id="name" name="name" maxlength="200" required>
                     <label for="description">Description</label>
-                    <textarea id="description" name="description"></textarea>
+                    <textarea id="description" name="description" maxlength="2000"></textarea>
                     <label for="shelf">Shelf</label>
-                    <input type="text" id="shelf" name="shelf" placeholder="A1" required>
+                    <input type="text" id="shelf" name="shelf" placeholder="A1" pattern="[A-Z]+[0-9]+" maxlength="10" required>
                     <div class="buttons_add">
                         <button type="submit">Add</button>
                         <button class="modal-close close_btn" type="button" id="closeAddProduct" aria-label="Close">&times;</button>

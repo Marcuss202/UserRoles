@@ -50,6 +50,10 @@ function checkLoginRateLimit(): bool {
 $error = '';
 $csrfToken = generateCSRFToken();
 
+if (($_GET['timeout'] ?? '') === '1') {
+    $error = 'Your session has expired due to inactivity. Please log in again.';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!checkLoginRateLimit()) {
         $error = 'Too many login attempts. Please wait 1 minute before trying again.';
@@ -74,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['email'] = $user['email'];
                 $_SESSION['role'] = $user['role'];
+                $_SESSION['last_activity'] = time();
                 
                 $ip = $_SERVER['REMOTE_ADDR'];
                 $rateFile = sys_get_temp_dir() . '/login_limit_' . md5($ip) . '.json';
