@@ -57,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($quantity > 9999) {
                 $error = 'Quantity cannot exceed 9999.';
             } else {
-                // Verify product exists and is not deleted
                 $productCheck = $pdo->prepare('SELECT id FROM products WHERE id = ? AND deleted_at IS NULL LIMIT 1');
                 $productCheck->execute([$productId]);
                 if (!$productCheck->fetch()) {
@@ -323,17 +322,14 @@ foreach ($rows as $row) {
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert, .error, .notice');
             alerts.forEach(alert => {
-                // Check if this is a temporary password notification (60 seconds)
                 const isTempPasswordAlert = alert.textContent.includes('Temporary password');
-                const dismissTime = isTempPasswordAlert ? 60000 : 3000; // 60 seconds for temp password, 3 seconds otherwise
+                const dismissTime = isTempPasswordAlert ? 60000 : 3000;
                 
-                // Set timeout to dismiss alert
                 setTimeout(() => {
                     alert.classList.add('dismiss');
-                    // Remove from DOM after animation completes
                     setTimeout(() => {
                         alert.remove();
-                    }, 500); // Match animation duration
+                    }, 500);
                 }, dismissTime);
             });
         });

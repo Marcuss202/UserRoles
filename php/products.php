@@ -23,7 +23,6 @@ $error = '';
 $success = '';
 $csrfToken = generateCSRFToken();
 
-// Handle POST for deleting product
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid request. Please try again.';
@@ -56,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         }
     }
 }
-// Handle POST for adding product
 elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid request. Please try again.';
@@ -261,17 +259,14 @@ $products = $stmt->fetchAll();
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert, .error, .notice');
             alerts.forEach(alert => {
-                // Check if this is a temporary password notification (60 seconds)
                 const isTempPasswordAlert = alert.textContent.includes('Temporary password');
-                const dismissTime = isTempPasswordAlert ? 60000 : 3000; // 60 seconds for temp password, 3 seconds otherwise
+                const dismissTime = isTempPasswordAlert ? 60000 : 3000;
                 
-                // Set timeout to dismiss alert
                 setTimeout(() => {
                     alert.classList.add('dismiss');
-                    // Remove from DOM after animation completes
                     setTimeout(() => {
                         alert.remove();
-                    }, 500); // Match animation duration
+                    }, 500);
                 }, dismissTime);
             });
         });

@@ -15,6 +15,5 @@ function log_activity(PDO $pdo, ?int $userId, string $action, string $entityType
             $newValue,
         ]);
     } catch (Throwable $e) {
-        // Log failures should not break the main workflow.
     }
 }
