@@ -1,8 +1,8 @@
 <?php
-require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
+require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/activity.php';
-require_auth();
+require_auth_with_user($pdo);
 
 $productId = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
 if ($productId <= 0) {
@@ -54,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$description = trim($_POST['description'] ?? '');
 			if ($name === '') {
 				$error = 'Name is required.';
-			} elseif (strlen($name) > 200) {
-				$error = 'Name cannot exceed 200 characters.';
+			} elseif (strlen($name) > 50) {
+				$error = 'Name cannot exceed 50 characters.';
 			} elseif (strlen($description) > 2000) {
 				$error = 'Description cannot exceed 2000 characters.';
 			} else {
@@ -147,7 +147,7 @@ $createdAt = $product['created_at'] ?? '';
 				<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
 				<input type="hidden" name="id" value="<?php echo (int) $productId; ?>">
 				<label for="name">Name</label>
-			<input type="text" id="name" name="name" value="<?php echo htmlspecialchars($displayName); ?>" maxlength="200" <?php echo $canEditItem ? '' : 'disabled'; ?> required>
+			<input type="text" id="name" name="name" value="<?php echo htmlspecialchars($displayName); ?>" maxlength="50" <?php echo $canEditItem ? '' : 'disabled'; ?> required>
 			<label for="description">Description</label>
 			<textarea id="description" name="description" maxlength="2000" <?php echo $canEditItem ? '' : 'disabled'; ?>><?php echo htmlspecialchars($displayDescription ?? ''); ?></textarea>
 			<label for="shelf">Shelf</label>
@@ -159,6 +159,7 @@ $createdAt = $product['created_at'] ?? '';
 		</div>
 	</div>
 
+	<script src="../assets/session-check.js"></script>
 	<script>
 		document.addEventListener('DOMContentLoaded', function() {
 			const alerts = document.querySelectorAll('.alert, .error, .notice');

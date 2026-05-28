@@ -1,8 +1,8 @@
 <?php
-require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
+require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/activity.php';
-require_auth();
+require_auth_with_user($pdo);
 
 if (!can_add_product()) {
     http_response_code(403);
@@ -37,14 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'User session missing.';
         } elseif ($name === '' || $shelf === '') {
             $error = 'Name and shelf are required.';
-        } elseif (strlen($name) > 200) {
-            $error = 'Name cannot exceed 200 characters.';
+        } elseif (strlen($name) > 50) {
+            $error = 'Name cannot exceed 50 characters.';
         } elseif (strlen($shelf) > 10) {
             $error = 'Shelf cannot exceed 10 characters.';
         } elseif (!preg_match('/^[A-Z]+\d+$/', $shelf)) {
             $error = 'Shelf must be in format like "A1" or "B2" (letters followed by numbers).';
         } elseif (strlen($description) > 2000) {
-            $error = 'Description cannot exceed 2000 characters.'
+            $error = 'Description cannot exceed 2000 characters.';
         } else {
             $stmt = $pdo->prepare(
                 'INSERT INTO products (name, description, shelf, created_by)
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="post" action="add_product.php">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                 <label for="name">Name</label>
-                <input type="text" id="name" name="name" maxlength="200" required>
+                <input type="text" id="name" name="name" maxlength="50" required>
                 <label for="description">Description</label>
                 <textarea id="description" name="description" maxlength="2000"></textarea>
                 <label for="shelf">Shelf</label>
@@ -96,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
+    <script src="../assets/session-check.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert, .error, .notice');

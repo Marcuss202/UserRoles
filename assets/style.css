@@ -609,6 +609,19 @@ textarea:disabled {
     opacity: 0.9;
 }
 
+.action-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+.action-row form {
+    display: inline-flex;
+    margin: 0;
+}
+
 .btn-admin {
     background-color: #dc3545;
 }

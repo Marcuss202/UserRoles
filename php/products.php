@@ -1,11 +1,12 @@
 <?php
-require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
+require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/activity.php';
-require_auth();
+require_auth_with_user($pdo);
 
 $canAdd = can_add_product();
 $canEdit = can_edit_item_fields() || can_edit_shelf();
+$canDelete = can_edit_item_fields();
 
 function generateCSRFToken(): string {
     if (!isset($_SESSION['csrf_token'])) {
@@ -26,7 +27,7 @@ $csrfToken = generateCSRFToken();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid request. Please try again.';
-    } elseif (!$canEdit) {
+    } elseif (!$canDelete) {
         http_response_code(403);
         $error = 'Access denied.';
     } else {
@@ -73,6 +74,8 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'User session missing.';
     } elseif ($error === '' && ($name === '' || $shelf === '')) {
         $error = 'Name and shelf are required.';
+    } elseif ($error === '' && strlen($name) > 50) {
+        $error = 'Name cannot exceed 50 characters.';
     } elseif ($error === '') {
         $stmt = $pdo->prepare(
             'INSERT INTO products (name, description, shelf, created_by)
@@ -152,7 +155,7 @@ $products = $stmt->fetchAll();
                             <th>Created By</th>
                             <th>Updated At</th>
                             <th>Updated By</th>
-                            <?php if ($canEdit): ?>
+                            <?php if ($canEdit || $canDelete): ?>
                                 <th>Actions</th>
                             <?php endif; ?>
                         </tr>
@@ -168,15 +171,21 @@ $products = $stmt->fetchAll();
                                 <td><?php echo htmlspecialchars($product['created_by_name'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($product['updated_at'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($product['updated_by_name'] ?? '-'); ?></td>
-                                <?php if ($canEdit): ?>
+                                <?php if ($canEdit || $canDelete): ?>
                                     <td>
-                                        <a class="link-btn btn-gray" href="edit_product.php?id=<?php echo (int) $product['id']; ?>">Edit</a>
-                                        <form method="post" action="products.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this product?');">
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="product_id" value="<?php echo (int) $product['id']; ?>">
-                                            <button type="submit" class="link-btn btn-red">Delete</button>
-                                        </form>
+                                        <div class="action-row">
+                                            <?php if ($canEdit): ?>
+                                                <a class="link-btn btn-gray" href="edit_product.php?id=<?php echo (int) $product['id']; ?>">Edit</a>
+                                            <?php endif; ?>
+                                            <?php if ($canDelete): ?>
+                                                <form method="post" action="products.php" onsubmit="return confirm('Are you sure you want to delete this product?');">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="product_id" value="<?php echo (int) $product['id']; ?>">
+                                                    <button type="submit" class="link-btn btn-red">Delete</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 <?php endif; ?>
                             </tr>
@@ -187,6 +196,7 @@ $products = $stmt->fetchAll();
         </div>
     </div>
 
+    <script src="../assets/session-check.js"></script>
     <?php if ($canAdd): ?>
         <div class="modal-backdrop" id="addProductModal" aria-hidden="true">
             <div class="modal-card modal-wrap" role="dialog" aria-modal="true" aria-labelledby="addProductTitle">
@@ -195,7 +205,7 @@ $products = $stmt->fetchAll();
                 <form method="post" action="products.php">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <label for="name">Name</label>
-                    <input type="text" id="name" name="name" maxlength="200" required>
+                    <input type="text" id="name" name="name" maxlength="50" required>
                     <label for="description">Description</label>
                     <textarea id="description" name="description" maxlength="2000"></textarea>
                     <label for="shelf">Shelf</label>

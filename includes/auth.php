@@ -50,6 +50,26 @@ function require_auth(): void {
     }
 }
 
+function user_exists(PDO $pdo): bool {
+    $userId = $_SESSION['user_id'] ?? null;
+    if (!$userId) {
+        return false;
+    }
+
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    return (bool) $stmt->fetch();
+}
+
+function require_auth_with_user(PDO $pdo): void {
+    require_auth();
+    if (!user_exists($pdo)) {
+        session_destroy();
+        header('Location: login.php?deleted=1');
+        exit;
+    }
+}
+
 function current_role(): string {
     return $_SESSION['role'] ?? 'shelf';
 }

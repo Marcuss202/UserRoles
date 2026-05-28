@@ -7,7 +7,7 @@ header('X-Frame-Options: DENY');
 header('X-XSS-Protection: 1; mode=block');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 
-require_auth();
+require_auth_with_user($pdo);
 
 function generateCSRFToken(): string {
     if (!isset($_SESSION['csrf_token'])) {
@@ -185,6 +185,7 @@ $email = $_SESSION['email'] ?? 'user';
         </div>
     </div>
     
+    <script src="../assets/session-check.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const passwordInput = document.getElementById('new_password');

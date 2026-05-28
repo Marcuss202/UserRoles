@@ -1,7 +1,7 @@
 <?php
-require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
-require_auth();
+require __DIR__ . '/../includes/auth.php';
+require_auth_with_user($pdo);
 
 $range = $_GET['range'] ?? '7';
 $range = in_array($range, ['today', '7', '30', 'all'], true) ? $range : '7';
@@ -40,6 +40,11 @@ $sql =
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $activities = $stmt->fetchAll();
+
+function trim_report_text(?string $text, int $max = 40): string {
+    $value = $text ?? '-';
+    return mb_strimwidth($value, 0, $max, '...');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -93,8 +98,8 @@ $activities = $stmt->fetchAll();
                                 <td><?php echo htmlspecialchars($activity['action']); ?></td>
                                 <td><?php echo htmlspecialchars($activity['entity_type']); ?> #<?php echo htmlspecialchars($activity['entity_id'] ?? '-'); ?></td>
                                 <td><?php echo htmlspecialchars($activity['field_name'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($activity['old_value'] ?? '-'); ?></td>
-                                <td><?php echo htmlspecialchars($activity['new_value'] ?? '-'); ?></td>
+                                <td><?php echo htmlspecialchars(trim_report_text($activity['old_value'] ?? null)); ?></td>
+                                <td><?php echo htmlspecialchars(trim_report_text($activity['new_value'] ?? null)); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -102,5 +107,6 @@ $activities = $stmt->fetchAll();
             <?php endif; ?>
         </div>
     </div>
+    <script src="../assets/session-check.js"></script>
 </body>
 </html>

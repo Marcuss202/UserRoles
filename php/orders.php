@@ -1,8 +1,8 @@
 <?php
-require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
+require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/activity.php';
-require_auth();
+require_auth_with_user($pdo);
 
 if (!can_view_orders()) {
     http_response_code(403);
@@ -318,6 +318,7 @@ foreach ($rows as $row) {
         </div>
     </div>
 
+    <script src="../assets/session-check.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert, .error, .notice');

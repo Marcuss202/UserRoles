@@ -1,7 +1,7 @@
 <?php
-require __DIR__ . '/../includes/auth.php';
 require __DIR__ . '/../includes/db.php';
-require_auth();
+require __DIR__ . '/../includes/auth.php';
+require_auth_with_user($pdo);
 
 // Check if user needs to change their temporary password
 $stmt = $pdo->prepare('SELECT password_changed FROM users WHERE id = ? LIMIT 1');
@@ -126,5 +126,6 @@ try {
             </div>
         </div>
     </div>
+    <script src="../assets/session-check.js"></script>
 </body>
 </html>

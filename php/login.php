@@ -54,6 +54,10 @@ if (($_GET['timeout'] ?? '') === '1') {
     $error = 'Your session has expired due to inactivity. Please log in again.';
 }
 
+if (($_GET['deleted'] ?? '') === '1') {
+    $error = 'Your account is no longer available. Please contact an administrator.';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!checkLoginRateLimit()) {
         $error = 'Too many login attempts. Please wait 1 minute before trying again.';

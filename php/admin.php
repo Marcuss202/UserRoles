@@ -7,7 +7,7 @@ header('X-Frame-Options: DENY');
 header('X-XSS-Protection: 1; mode=block');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 
-require_auth();
+require_auth_with_user($pdo);
 
 $stmt = $pdo->prepare('SELECT role FROM users WHERE id = ? LIMIT 1');
 $stmt->execute([$_SESSION['user_id']]);
@@ -90,6 +90,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'An error occurred while creating the user.';
                 }
             }
+        } elseif ($action === 'delete_user') {
+            $userId = intval($_POST['user_id'] ?? 0);
+
+            if ($userId <= 0) {
+                $error = 'Invalid user ID.';
+            } elseif ($userId == $_SESSION['user_id']) {
+                $error = 'You cannot delete your own account.';
+            } else {
+                try {
+                    $checkStmt = $pdo->prepare('SELECT id FROM users WHERE id = ? LIMIT 1');
+                    $checkStmt->execute([$userId]);
+                    if (!$checkStmt->fetch()) {
+                        $error = 'User not found.';
+                    } else {
+                        $deleteStmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
+                        $deleteStmt->execute([$userId]);
+                        $success = 'User deleted successfully.';
+                    }
+                } catch (PDOException $e) {
+                    error_log('User deletion error: ' . $e->getMessage());
+                    $error = 'Unable to delete user. They may have related records.';
+                }
+            }
         } else {
             // Handle role change
             $userId = intval($_POST['user_id'] ?? 0);
@@ -147,7 +170,10 @@ $csrfToken = generateCSRFToken();
     <div class="admin-container">
         <div class="admin-header">
             <h1>Admin Panel - User Management</h1>
-            <a href="logout.php" class="logout-btn">Logout</a>
+            <div class="topbar-actions">
+                <a class="link-btn btn-gray" href="dashboard.php">Back</a>
+                <a href="logout.php" class="logout-btn">Logout</a>
+            </div>
         </div>
 
         <?php if ($error): ?>
@@ -231,6 +257,12 @@ $csrfToken = generateCSRFToken();
                                             <option value="shelf" <?php echo $user['role'] === 'shelf' ? 'selected' : ''; ?>>Shelf Staff</option>
                                         </select>
                                     </form>
+                                    <form method="post" action="admin.php" style="display: inline;" onsubmit="return confirm('Delete this user? This action cannot be undone.');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                        <input type="hidden" name="action" value="delete_user">
+                                        <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($user['id']); ?>">
+                                        <button type="submit" class="action-btn" style="background-color: #dc3545;">Confirm delete</button>
+                                    </form>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -250,6 +282,7 @@ $csrfToken = generateCSRFToken();
         </div>
     </div>
 
+    <script src="../assets/session-check.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert, .error, .notice');
