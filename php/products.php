@@ -246,5 +246,25 @@ $products = $stmt->fetchAll();
             });
         </script>
     <?php endif; ?>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert, .error, .notice');
+            alerts.forEach(alert => {
+                // Check if this is a temporary password notification (60 seconds)
+                const isTempPasswordAlert = alert.textContent.includes('Temporary password');
+                const dismissTime = isTempPasswordAlert ? 60000 : 3000; // 60 seconds for temp password, 3 seconds otherwise
+                
+                // Set timeout to dismiss alert
+                setTimeout(() => {
+                    alert.classList.add('dismiss');
+                    // Remove from DOM after animation completes
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 500); // Match animation duration
+                }, dismissTime);
+            });
+        });
+    </script>
 </body>
 </html>
