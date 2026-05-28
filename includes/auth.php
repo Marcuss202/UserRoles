@@ -1,24 +1,20 @@
 <?php
-// Security: Harden session configuration
 if (session_status() !== PHP_SESSION_ACTIVE) {
-    // Security headers for session
     ini_set('session.use_only_cookies', 1);
     ini_set('session.use_strict_mode', 1);
     ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_secure', 1); // Only over HTTPS
+    ini_set('session.cookie_secure', 1);
     ini_set('session.cookie_samesite', 'Strict');
-    ini_set('session.gc_maxlifetime', 1800); // 30 minutes
+    ini_set('session.gc_maxlifetime', 1800);
     
     session_start();
     
-    // Prevent session fixation attacks
     if (empty($_SESSION['initiated'])) {
         session_regenerate_id(true);
         $_SESSION['initiated'] = true;
     }
 }
 
-// Session activity timeout (30 minutes of inactivity)
 define('SESSION_ACTIVITY_TIMEOUT', 1800);
 
 function check_session_timeout(): void {
@@ -27,13 +23,11 @@ function check_session_timeout(): void {
         $lastActivity = $_SESSION['last_activity'] ?? $now;
         
         if ($now - $lastActivity > SESSION_ACTIVITY_TIMEOUT) {
-            // Session has timed out
             session_destroy();
             header('Location: login.php?timeout=1');
             exit;
         }
         
-        // Update last activity time
         $_SESSION['last_activity'] = $now;
     }
 }

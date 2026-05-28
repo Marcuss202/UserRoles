@@ -68,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Password does not meet security requirements.';
             } else {
                 try {
-                    // Get current password hash
                     $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE id = ? LIMIT 1');
                     $stmt->execute([$_SESSION['user_id']]);
                     $user = $stmt->fetch();
@@ -78,14 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } elseif (!password_verify($currentPassword, $user['password_hash'])) {
                         $error = 'Current password is incorrect.';
                     } else {
-                        // Hash new password
                         $hash = password_hash($newPassword, PASSWORD_ARGON2ID, [
                             'memory_cost' => 65536,
                             'time_cost' => 4,
                             'threads' => 2
                         ]);
                         
-                        // Update password and mark as changed
                         $updateStmt = $pdo->prepare('UPDATE users SET password_hash = ?, password_changed = TRUE WHERE id = ?');
                         $updateStmt->execute([$hash, $_SESSION['user_id']]);
                         
@@ -239,17 +236,14 @@ $email = $_SESSION['email'] ?? 'user';
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert, .error, .notice');
             alerts.forEach(alert => {
-                // Check if this is a temporary password notification (60 seconds)
                 const isTempPasswordAlert = alert.textContent.includes('Temporary password');
-                const dismissTime = isTempPasswordAlert ? 60000 : 3000; // 60 seconds for temp password, 3 seconds otherwise
+                const dismissTime = isTempPasswordAlert ? 60000 : 3000;
                 
-                // Set timeout to dismiss alert
                 setTimeout(() => {
                     alert.classList.add('dismiss');
-                    // Remove from DOM after animation completes
                     setTimeout(() => {
                         alert.remove();
-                    }, 500); // Match animation duration
+                    }, 500);
                 }, dismissTime);
             });
         });

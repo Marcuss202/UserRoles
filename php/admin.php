@@ -47,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
         
         if ($action === 'create_user') {
-            // Handle user creation
             $email = sanitizeEmail($_POST['email'] ?? '');
             $role = $_POST['role'] ?? 'item';
             
@@ -63,14 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Invalid role selected.';
             } else {
                 try {
-                    // Check if email already exists
                     $checkStmt = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
                     $checkStmt->execute([$email]);
                     
                     if ($checkStmt->fetch()) {
                         $error = 'A user with this email already exists.';
                     } else {
-                        // Generate a temporary password
                         $tempPassword = generateTemporaryPassword();
                         $hash = password_hash($tempPassword, PASSWORD_ARGON2ID, [
                             'memory_cost' => 65536,
@@ -78,7 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'threads' => 2
                         ]);
                         
-                        // Insert new user
                         $insert = $pdo->prepare('INSERT INTO users (email, password_hash, role, password_changed) VALUES (?, ?, ?, FALSE)');
                         $insert->execute([$email, $hash, $role]);
                         
@@ -91,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } else {
-            // Handle role change
             $userId = intval($_POST['user_id'] ?? 0);
             $newRole = $_POST['role'] ?? '';
             
@@ -254,17 +249,14 @@ $csrfToken = generateCSRFToken();
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert, .error, .notice');
             alerts.forEach(alert => {
-                // Check if this is a temporary password notification (60 seconds)
                 const isTempPasswordAlert = alert.textContent.includes('Temporary password');
                 const dismissTime = isTempPasswordAlert ? 60000 : 3000; // 60 seconds for temp password, 3 seconds otherwise
                 
-                // Set timeout to dismiss alert
                 setTimeout(() => {
                     alert.classList.add('dismiss');
-                    // Remove from DOM after animation completes
                     setTimeout(() => {
                         alert.remove();
-                    }, 500); // Match animation duration
+                    }, 500);
                 }, dismissTime);
             });
         });
