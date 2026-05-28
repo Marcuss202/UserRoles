@@ -14,6 +14,19 @@ $canManage = can_manage_orders();
 $error = '';
 $success = '';
 
+function generateCSRFToken(): string {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCSRFToken($token): bool {
+    return hash_equals($_SESSION['csrf_token'] ?? '', $token);
+}
+
+$csrfToken = generateCSRFToken();
+
 function email_local_part(?string $email): string {
     if (!$email) {
         return '-';
@@ -23,7 +36,10 @@ function email_local_part(?string $email): string {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request. Please try again.';
+    } else {
+        $action = $_POST['action'] ?? '';
 
     if ($action === 'create') {
         if (!$canManage) {
@@ -41,11 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($quantity > 9999) {
                 $error = 'Quantity cannot exceed 9999.';
             } else {
-                // Verify product exists
-                $productCheck = $pdo->prepare('SELECT id FROM products WHERE id = ? LIMIT 1');
+                // Verify product exists and is not deleted
+                $productCheck = $pdo->prepare('SELECT id FROM products WHERE id = ? AND deleted_at IS NULL LIMIT 1');
                 $productCheck->execute([$productId]);
                 if (!$productCheck->fetch()) {
-                    $error = 'Product not found.';
+                    $error = 'Product not found or has been deleted.';
                 } else {
                     $pdo->beginTransaction();
                     try {
@@ -134,6 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+    }
 }
 
 $productsStmt = $pdo->query('SELECT id, name FROM products WHERE deleted_at IS NULL ORDER BY name ASC');
@@ -212,6 +229,7 @@ foreach ($rows as $row) {
 
             <?php if ($canManage): ?>
                 <form method="post" action="orders.php" class="order-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="create">
                     <div>
                         <label for="product_id">Product</label>
@@ -299,5 +317,25 @@ foreach ($rows as $row) {
             <?php endif; ?>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert, .error, .notice');
+            alerts.forEach(alert => {
+                // Check if this is a temporary password notification (60 seconds)
+                const isTempPasswordAlert = alert.textContent.includes('Temporary password');
+                const dismissTime = isTempPasswordAlert ? 60000 : 3000; // 60 seconds for temp password, 3 seconds otherwise
+                
+                // Set timeout to dismiss alert
+                setTimeout(() => {
+                    alert.classList.add('dismiss');
+                    // Remove from DOM after animation completes
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 500); // Match animation duration
+                }, dismissTime);
+            });
+        });
+    </script>
 </body>
 </html>

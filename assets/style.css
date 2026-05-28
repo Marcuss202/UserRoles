@@ -107,6 +107,17 @@ select {
     text-decoration: none;
 }
 
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        max-height: 200px;
+    }
+    to {
+        opacity: 0;
+        max-height: 0;
+    }
+}
+
 .error {
     background: #fee2e2;
     color: #991b1b;
@@ -115,6 +126,11 @@ select {
     padding: 10px 12px;
     margin-bottom: 12px;
     font-size: 14px;
+    overflow: hidden;
+}
+
+.error.dismiss {
+    animation: fadeOut 0.5s ease-out forwards;
 }
 
 .notice {
@@ -125,6 +141,19 @@ select {
     padding: 10px 12px;
     margin-bottom: 12px;
     font-size: 14px;
+    overflow: hidden;
+}
+
+.notice.dismiss {
+    animation: fadeOut 0.5s ease-out forwards;
+}
+
+.alert {
+    overflow: hidden;
+}
+
+.alert.dismiss {
+    animation: fadeOut 0.5s ease-out forwards;
 }
 
 .topbar {
